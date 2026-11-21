@@ -69,6 +69,27 @@
       animation: impactFlash 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
+    /* Tactile rubber golf grip texture for the two-thumb hold bar */
+    .golf-grip-texture {
+      background-color: #06180f;
+      background-image:
+        radial-gradient(rgba(34, 197, 94, 0.16) 1px, transparent 1px),
+        radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 12px 12px;
+      background-position: 0 0, 6px 6px;
+      touch-action: none;
+    }
+
+    .golf-grip-locked {
+      background-color: #092919;
+      background-image:
+        radial-gradient(rgba(250, 204, 21, 0.28) 1.5px, transparent 1.5px),
+        radial-gradient(rgba(74, 222, 128, 0.22) 1px, transparent 1px);
+      background-size: 12px 12px;
+      background-position: 0 0, 6px 6px;
+      box-shadow: 0 0 28px rgba(34, 197, 94, 0.35), inset 0 0 18px rgba(250, 204, 21, 0.18);
+    }
+
     /* Custom scrollbar for swing log */
     ::-webkit-scrollbar {
       width: 4px;
@@ -88,10 +109,16 @@
   <!-- Full-screen Impact Flash Overlay -->
   <div id="impactFlashOverlay" class="fixed inset-0 bg-emerald-400 pointer-events-none opacity-0 z-50"></div>
 
-  <!-- Main Container -->
-  <div class="w-full max-w-md flex flex-col gap-4">
+  <!-- Hidden iOS 17.4+ Safari Switch Haptic Trigger (gives native Taptic feedback on iPhone Safari) -->
+  <div class="sr-only" aria-hidden="true">
+    <input type="checkbox" id="iosHapticSwitch" switch />
+    <label for="iosHapticSwitch" id="iosHapticLabel">Haptic</label>
+  </div>
 
-    <!-- Header & Sensor Status Bar -->
+  <!-- Main Container -->
+  <div class="w-full max-w-md flex flex-col gap-3.5">
+
+    <!-- Header & Sensor/Haptic Status Bar -->
     <header class="flex items-center justify-between bg-augusta-900/90 border border-emerald-500/20 rounded-2xl px-4 py-3 shadow-lg backdrop-blur-md">
       <div class="flex items-center gap-2.5">
         <!-- Golf Flag / Radar Icon -->
@@ -107,71 +134,84 @@
         </div>
       </div>
 
-      <!-- Sensor Status Pill -->
-      <div id="sensorBadge" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-xs font-medium">
-        <span id="sensorDot" class="w-2 h-2 rounded-full bg-amber-400"></span>
-        <span id="sensorStatusText">Sensors Off</span>
+      <div class="flex flex-col items-end gap-1">
+        <!-- Sensor Status Pill -->
+        <div id="sensorBadge" class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-[11px] font-medium">
+          <span id="sensorDot" class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+          <span id="sensorStatusText">Sensors Off</span>
+        </div>
+        <!-- Haptics & Sound Indicator Pill -->
+        <div id="hapticBadge" class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-400/25 text-emerald-300 text-[10px] font-mono">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span id="hapticStatusText">Haptics &amp; Sound Ready</span>
+        </div>
       </div>
     </header>
 
     <!-- Non-blocking Inline Banner / Toast Notification -->
-    <div id="statusBanner" class="hidden rounded-xl px-3.5 py-2.5 text-xs font-medium border transition-all duration-200"></div>
+    <div id="statusBanner" class="hidden rounded-xl px-3.5 py-2 text-xs font-medium border transition-all duration-200"></div>
 
-    <!-- Sensor Activation & Desktop Test Controls -->
-    <section id="sensorSetupCard" class="bg-augusta-900/80 border border-emerald-500/20 rounded-2xl p-3.5 shadow-md flex flex-col gap-2.5">
-      <div class="flex flex-col sm:flex-row gap-2">
-        <button id="enableSensorsBtn" type="button" class="flex-1 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-augusta-950 font-bold text-sm shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2 cursor-pointer">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Sensor Activation, Vibration Test & Desktop Test Controls -->
+    <section id="sensorSetupCard" class="bg-augusta-900/80 border border-emerald-500/20 rounded-2xl p-3 shadow-md flex flex-col gap-2">
+      <div class="grid grid-cols-12 gap-2">
+        <button id="enableSensorsBtn" type="button" class="col-span-12 sm:col-span-5 py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-augusta-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-1.5 cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
             <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
             <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
             <line x1="12" y1="20" x2="12.01" y2="20"></line>
           </svg>
-          <span>Enable Motion Sensors</span>
+          <span>Enable Sensors</span>
         </button>
 
-        <button id="simulateSwingBtn" type="button" class="py-2.5 px-3.5 rounded-xl bg-augusta-800 hover:bg-augusta-700 active:scale-[0.98] border border-emerald-500/25 text-emerald-200 font-semibold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Test without a smartphone accelerometer">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button id="testVibrationBtn" type="button" class="col-span-6 sm:col-span-4 py-2.5 px-2.5 rounded-xl bg-augusta-800 hover:bg-augusta-700 active:scale-[0.98] border border-gold-400/30 text-gold-400 font-semibold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer" title="Feel the ball-impact vibration & sound right now">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="6" y="2" width="12" height="20" rx="2" ry="2"></rect>
+            <path d="M2 8v8"></path>
+            <path d="M22 8v8"></path>
+          </svg>
+          <span>Test Impact</span>
+        </button>
+
+        <button id="simulateSwingBtn" type="button" class="col-span-6 sm:col-span-3 py-2.5 px-2.5 rounded-xl bg-augusta-800 hover:bg-augusta-700 active:scale-[0.98] border border-emerald-500/25 text-emerald-200 font-semibold text-xs transition flex items-center justify-center gap-1 cursor-pointer" title="Simulate a full swing on desktop">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="5 3 19 12 5 21 5 3"></polygon>
           </svg>
-          <span>Simulate Swing</span>
+          <span>Sim Swing</span>
         </button>
       </div>
-      <p class="text-[11px] text-slate-400 leading-relaxed text-center">
-        Grip your phone firmly with two hands. Tap <strong class="text-slate-200">Address Ball</strong> before swinging—do not let go!
-      </p>
     </section>
 
-    <!-- Club Selector Pills -->
+    <!-- Club Selector Pills (Driver, 5-Iron, 7-Iron, Pitching Wedge) -->
     <section aria-label="Club Selection" class="grid grid-cols-4 gap-2">
-      <button type="button" data-club="driver" class="club-pill active flex flex-col items-center py-2.5 px-1.5 rounded-xl border transition cursor-pointer bg-emerald-500/20 border-emerald-400 text-white shadow-sm">
+      <button type="button" data-club="driver" class="club-pill active flex flex-col items-center py-2 px-1.5 rounded-xl border transition cursor-pointer bg-emerald-500/20 border-emerald-400 text-white shadow-sm">
         <span class="text-xs font-extrabold tracking-tight">Driver</span>
         <span class="text-[10px] font-mono text-emerald-300 mt-0.5">280 yds</span>
       </button>
-      <button type="button" data-club="iron7" class="club-pill flex flex-col items-center py-2.5 px-1.5 rounded-xl border transition cursor-pointer bg-augusta-900/70 border-emerald-500/15 text-slate-300 hover:border-emerald-500/40">
+      <button type="button" data-club="iron5" class="club-pill flex flex-col items-center py-2 px-1.5 rounded-xl border transition cursor-pointer bg-augusta-900/70 border-emerald-500/15 text-slate-300 hover:border-emerald-500/40">
+        <span class="text-xs font-extrabold tracking-tight">5-Iron</span>
+        <span class="text-[10px] font-mono text-slate-400 mt-0.5">195 yds</span>
+      </button>
+      <button type="button" data-club="iron7" class="club-pill flex flex-col items-center py-2 px-1.5 rounded-xl border transition cursor-pointer bg-augusta-900/70 border-emerald-500/15 text-slate-300 hover:border-emerald-500/40">
         <span class="text-xs font-extrabold tracking-tight">7-Iron</span>
         <span class="text-[10px] font-mono text-slate-400 mt-0.5">165 yds</span>
       </button>
-      <button type="button" data-club="wedge" class="club-pill flex flex-col items-center py-2.5 px-1.5 rounded-xl border transition cursor-pointer bg-augusta-900/70 border-emerald-500/15 text-slate-300 hover:border-emerald-500/40">
+      <button type="button" data-club="wedge" class="club-pill flex flex-col items-center py-2 px-1.5 rounded-xl border transition cursor-pointer bg-augusta-900/70 border-emerald-500/15 text-slate-300 hover:border-emerald-500/40">
         <span class="text-xs font-extrabold tracking-tight">P-Wedge</span>
         <span class="text-[10px] font-mono text-slate-400 mt-0.5">115 yds</span>
       </button>
-      <button type="button" data-club="putter" class="club-pill flex flex-col items-center py-2.5 px-1.5 rounded-xl border transition cursor-pointer bg-augusta-900/70 border-emerald-500/15 text-slate-300 hover:border-emerald-500/40">
-        <span class="text-xs font-extrabold tracking-tight">Putter</span>
-        <span class="text-[10px] font-mono text-slate-400 mt-0.5">40 ft</span>
-      </button>
     </section>
 
-    <!-- Shot Result & Live Telemetry Card -->
-    <section class="relative overflow-hidden bg-gradient-to-b from-augusta-900 to-augusta-950 border border-emerald-500/25 rounded-3xl p-5 shadow-2xl">
-      <!-- Top Telemetry Row: Club & Shot Shape -->
-      <div class="flex items-center justify-between mb-3">
-        <div class="flex items-center gap-2">
-          <span id="activeClubTitle" class="text-xs font-mono uppercase tracking-wider px-2.5 py-1 rounded-lg bg-augusta-800 text-emerald-300 border border-emerald-500/20 font-bold">
+    <!-- Shot Result, 2D Fairway Trajectory Arc & Live Telemetry Card -->
+    <section class="relative overflow-hidden bg-gradient-to-b from-augusta-900 to-augusta-950 border border-emerald-500/25 rounded-3xl p-4 shadow-2xl">
+      <!-- Top Telemetry Row: Club & Live G-Force -->
+      <div class="flex items-center justify-between mb-2.5">
+        <div class="flex items-center gap-1.5">
+          <span id="activeClubTitle" class="text-[11px] font-mono uppercase tracking-wider px-2.5 py-1 rounded-lg bg-augusta-800 text-emerald-300 border border-emerald-500/20 font-bold">
             DRIVER • MAX 280 YDS
           </span>
           <span id="pureTempoBadge" class="hidden text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded-lg bg-gold-400/20 text-gold-400 border border-gold-400/40 font-extrabold">
-            ★ PURE TEMPO
+            ★ PURE
           </span>
         </div>
         <span id="liveGReadout" class="text-xs font-mono text-slate-400">
@@ -180,68 +220,113 @@
       </div>
 
       <!-- Main Power & Carry Readout -->
-      <div class="grid grid-cols-2 gap-3 my-2">
-        <div class="bg-augusta-950/80 border border-emerald-500/15 rounded-2xl p-3.5 flex flex-col justify-between">
-          <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Swing Power</span>
-          <div class="flex items-baseline gap-1 mt-1">
-            <span id="powerValue" class="text-4xl sm:text-5xl font-black font-mono tracking-tight text-white">--</span>
-            <span class="text-lg font-bold text-emerald-400">%</span>
+      <div class="grid grid-cols-2 gap-2.5 my-1.5">
+        <div class="bg-augusta-950/80 border border-emerald-500/15 rounded-2xl p-3 flex flex-col justify-between">
+          <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Swing Power</span>
+          <div class="flex items-baseline gap-1 mt-0.5">
+            <span id="powerValue" class="text-3xl sm:text-4xl font-black font-mono tracking-tight text-white">--</span>
+            <span class="text-base font-bold text-emerald-400">%</span>
           </div>
-          <span id="peakGValue" class="text-[11px] font-mono text-slate-400 mt-1">Peak: 0.00 G</span>
+          <span id="peakGValue" class="text-[10px] font-mono text-slate-400 mt-0.5">Peak: 0.00 G</span>
         </div>
 
-        <div class="bg-augusta-950/80 border border-emerald-500/15 rounded-2xl p-3.5 flex flex-col justify-between">
-          <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Est. Carry</span>
-          <div class="flex items-baseline gap-1 mt-1">
-            <span id="distanceValue" class="text-4xl sm:text-5xl font-black font-mono tracking-tight text-emerald-400">--</span>
-            <span id="distanceUnit" class="text-sm font-bold text-slate-400 uppercase">yds</span>
+        <div class="bg-augusta-950/80 border border-emerald-500/15 rounded-2xl p-3 flex flex-col justify-between">
+          <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Est. Carry</span>
+          <div class="flex items-baseline gap-1 mt-0.5">
+            <span id="distanceValue" class="text-3xl sm:text-4xl font-black font-mono tracking-tight text-emerald-400">--</span>
+            <span id="distanceUnit" class="text-xs font-bold text-slate-400 uppercase">yds</span>
           </div>
-          <span id="shotShapeValue" class="text-[11px] font-mono text-emerald-200 mt-1">Shape: --</span>
+          <span id="shotShapeValue" class="text-[10px] font-mono text-emerald-200 mt-0.5">Shape: --</span>
         </div>
       </div>
 
-      <!-- Visual Power & Arc Yardage Meter Bar -->
-      <div class="mt-4">
-        <div class="flex justify-between text-[10px] font-mono text-slate-400 mb-1.5">
+      <!-- Visual Power Meter Bar -->
+      <div class="mt-2.5">
+        <div class="flex justify-between text-[10px] font-mono text-slate-400 mb-1">
           <span>0%</span>
           <span>50%</span>
           <span class="text-emerald-400 font-bold">100%</span>
           <span class="text-gold-400 font-bold">110%</span>
         </div>
-        <div class="w-full h-4 bg-augusta-950 rounded-full p-0.5 border border-emerald-500/20 overflow-hidden relative">
-          <!-- 100% marker tick -->
+        <div class="w-full h-3 bg-augusta-950 rounded-full p-0.5 border border-emerald-500/20 overflow-hidden relative">
           <div class="absolute top-0 bottom-0 left-[90.9%] w-0.5 bg-white/30 z-10"></div>
           <div id="powerMeterBar" class="h-full rounded-full bg-gradient-to-r from-emerald-600 via-emerald-400 to-gold-400 transition-all duration-500 ease-out" style="width: 0%"></div>
         </div>
       </div>
 
-      <!-- Visual Shot Dispersion / Trajectory Indicator -->
-      <div class="mt-3.5 pt-3 border-t border-emerald-500/15 flex items-center justify-between text-xs">
-        <span class="text-slate-400 font-medium">Dispersion Line</span>
-        <div class="flex items-center gap-2 w-44">
-          <span class="text-[10px] font-mono text-slate-500">L</span>
-          <div class="flex-1 h-2 bg-augusta-950 rounded-full relative border border-emerald-500/15">
-            <div class="absolute top-0 bottom-0 left-1/2 w-0.5 bg-slate-600 -translate-x-1/2"></div>
-            <div id="dispersionDot" class="w-3 h-3 rounded-full bg-emerald-400 border-2 border-augusta-950 shadow absolute top-1/2 -translate-y-1/2 -translate-x-1/2 transition-all duration-500" style="left: 50%"></div>
-          </div>
-          <span class="text-[10px] font-mono text-slate-500">R</span>
+      <!-- Mini 2D Fairway Trajectory Arc Visual -->
+      <div class="mt-3 pt-2.5 border-t border-emerald-500/15">
+        <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 mb-1">
+          <span>FAIRWAY RADAR</span>
+          <span id="landingSummaryText" class="text-emerald-300">Hold club grip below &amp; swing</span>
+        </div>
+        <div class="relative w-full h-24 rounded-2xl bg-augusta-950 border border-emerald-500/20 overflow-hidden">
+          <svg id="fairwaySvg" viewBox="0 0 300 100" class="w-full h-full" preserveAspectRatio="none">
+            <!-- Rough & Fairway Cone -->
+            <polygon points="118,96 182,96 238,8 62,8" fill="rgba(19, 78, 49, 0.35)" stroke="rgba(34, 197, 94, 0.22)" stroke-width="1" />
+            <!-- Center Aim Line -->
+            <line x1="150" y1="96" x2="150" y2="8" stroke="rgba(255, 255, 255, 0.14)" stroke-width="1" stroke-dasharray="3 3" />
+            <!-- Distance Yardage Arcs -->
+            <path d="M 96 68 Q 150 60 204 68" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
+            <path d="M 78 38 Q 150 28 222 38" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
+            <!-- Tee Box Marker -->
+            <circle cx="150" cy="93" r="3" fill="#4ade80" />
+            <!-- Dynamic Shot Flight Curve -->
+            <path id="shotTrajectoryPath" d="" fill="none" stroke="#facc15" stroke-width="2.5" stroke-linecap="round" />
+            <!-- Ball Landing Marker -->
+            <g id="ballLandingGroup" class="hidden">
+              <circle id="ballLandingHalo" cx="150" cy="50" r="7" fill="rgba(250, 204, 21, 0.25)" />
+              <circle id="ballLandingDot" cx="150" cy="50" r="3.5" fill="#ffffff" stroke="#facc15" stroke-width="1.5" />
+            </g>
+          </svg>
         </div>
       </div>
     </section>
 
-    <!-- Primary Action Button: Ready / Address Ball -->
-    <section class="flex flex-col items-center">
-      <button id="armSwingBtn" type="button" class="w-full py-5 px-6 rounded-3xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 active:scale-[0.98] text-augusta-950 font-black text-lg tracking-wide uppercase shadow-xl shadow-emerald-500/25 border-2 border-emerald-300/40 transition-all flex flex-col items-center justify-center cursor-pointer">
-        <span id="armBtnMainText">Ready / Address Ball</span>
-        <span id="armBtnSubText" class="text-xs font-semibold normal-case tracking-normal text-augusta-950/80 mt-0.5">
-          Tap to arm • 3-sec stance window
-        </span>
-      </button>
+    <!-- TWO-THUMB CLUB GRIP ZONE (Hold to Arm & Swing) -->
+    <section aria-label="Club Grip Zone" class="flex flex-col gap-1.5">
+      <div id="clubGripBar" role="button" tabindex="0" aria-label="Hold thumbs on club grip bar to arm and swing" class="golf-grip-texture relative w-full rounded-3xl border-2 border-emerald-500/35 p-3.5 transition-all duration-150 shadow-xl cursor-pointer overflow-hidden">
+        <!-- Top Grip Status Header -->
+        <div class="flex items-center justify-between mb-2 pointer-events-none">
+          <div class="flex items-center gap-2">
+            <span id="gripStatusIndicator" class="w-2.5 h-2.5 rounded-full bg-slate-500 transition-colors"></span>
+            <span id="gripMainStatus" class="text-xs sm:text-sm font-black uppercase tracking-wider text-emerald-300">
+              HOLD GRIP BAR TO SWING
+            </span>
+          </div>
+          <span id="gripTouchCountBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-augusta-950/90 border border-emerald-500/20 text-slate-400">
+            0 THUMBS
+          </span>
+        </div>
+
+        <!-- Two Dedicated Thumb Grip Pads -->
+        <div class="grid grid-cols-2 gap-2.5 pointer-events-none">
+          <!-- Left Thumb Pad -->
+          <div id="leftThumbPad" class="h-16 rounded-2xl bg-augusta-950/85 border border-emerald-500/25 flex flex-col items-center justify-center gap-1 transition-all duration-150">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-emerald-400/75" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"></path>
+            </svg>
+            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-300">Left Thumb</span>
+          </div>
+
+          <!-- Right Thumb Pad -->
+          <div id="rightThumbPad" class="h-16 rounded-2xl bg-augusta-950/85 border border-emerald-500/25 flex flex-col items-center justify-center gap-1 transition-all duration-150">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-emerald-400/75" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"></path>
+            </svg>
+            <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-300">Right Thumb</span>
+          </div>
+        </div>
+
+        <p id="gripSubInstruction" class="text-[11px] text-center text-slate-400 mt-2 pointer-events-none">
+          Press &amp; hold thumbs on the grip bar, swing phone, release after strike
+        </p>
+      </div>
     </section>
 
     <!-- Compact Recent Swings Session Log -->
-    <section class="bg-augusta-900/80 border border-emerald-500/20 rounded-2xl p-4 shadow-lg">
-      <div class="flex items-center justify-between mb-2.5">
+    <section class="bg-augusta-900/80 border border-emerald-500/20 rounded-2xl p-3.5 shadow-lg">
+      <div class="flex items-center justify-between mb-2">
         <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Session Log</h2>
         <div class="flex items-center gap-3 text-[11px] font-mono">
           <span class="text-slate-400">Avg: <strong id="avgPowerStat" class="text-emerald-400">--%</strong></span>
@@ -250,16 +335,16 @@
         </div>
       </div>
 
-      <div id="swingLogList" class="flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-1">
-        <div class="text-center py-4 text-xs text-slate-500 italic">
-          No swings recorded yet. Address the ball and swing!
+      <div id="swingLogList" class="flex flex-col gap-1.5 max-h-32 overflow-y-auto pr-1">
+        <div class="text-center py-3 text-xs text-slate-500 italic">
+          No swings recorded yet. Grip the bar &amp; take a swing!
         </div>
       </div>
     </section>
 
   </div>
 
-  <!-- Application Logic: Motion Sensors, Impact Detection, Web Audio & State -->
+  <!-- Application Logic: Two-Thumb Grip Bar, Multi-Platform Haptics, Motion Sensors & Trajectory -->
   <script>
     (function () {
       'use strict';
@@ -268,18 +353,18 @@
       // 1. CLUB CONFIGURATION & STATE
       // ==========================================
       const CLUBS = {
-        driver: { name: 'Driver', maxDist: 280, unit: 'yds', minG: 2.2, maxG: 6.2 },
-        iron7:  { name: '7-Iron', maxDist: 165, unit: 'yds', minG: 2.0, maxG: 5.5 },
-        wedge:  { name: 'P-Wedge', maxDist: 115, unit: 'yds', minG: 1.7, maxG: 4.6 },
-        putter: { name: 'Putter', maxDist: 40,  unit: 'ft',  minG: 1.15, maxG: 2.4 }
+        driver: { name: 'Driver',  maxDist: 280, unit: 'yds', minG: 2.2, maxG: 6.2 },
+        iron5:  { name: '5-Iron',  maxDist: 195, unit: 'yds', minG: 2.0, maxG: 5.8 },
+        iron7:  { name: '7-Iron',  maxDist: 165, unit: 'yds', minG: 1.9, maxG: 5.4 },
+        wedge:  { name: 'P-Wedge', maxDist: 115, unit: 'yds', minG: 1.7, maxG: 4.6 }
       };
 
       const state = {
         selectedClub: 'driver',
         sensorsEnabled: false,
-        armState: 'IDLE', // 'IDLE' | 'COUNTDOWN' | 'ARMED'
-        countdownTimer: null,
-        armedTimeout: null,
+        gripLocked: false,         // True while user holds finger(s)/thumb(s) on the grip bar
+        shotCompletedOnHold: false, // Prevents accidental re-triggers after impact while still holding
+        activePointers: new Set(),
         // Real-time swing tracking variables
         isSwinging: false,
         peakG: 0,
@@ -297,11 +382,14 @@
       // ==========================================
       const el = {
         impactFlash: document.getElementById('impactFlashOverlay'),
+        iosHapticLabel: document.getElementById('iosHapticLabel'),
         sensorBadge: document.getElementById('sensorBadge'),
         sensorDot: document.getElementById('sensorDot'),
         sensorStatusText: document.getElementById('sensorStatusText'),
+        hapticStatusText: document.getElementById('hapticStatusText'),
         statusBanner: document.getElementById('statusBanner'),
         enableSensorsBtn: document.getElementById('enableSensorsBtn'),
+        testVibrationBtn: document.getElementById('testVibrationBtn'),
         simulateSwingBtn: document.getElementById('simulateSwingBtn'),
         clubPills: document.querySelectorAll('.club-pill'),
         activeClubTitle: document.getElementById('activeClubTitle'),
@@ -313,10 +401,18 @@
         distanceUnit: document.getElementById('distanceUnit'),
         shotShapeValue: document.getElementById('shotShapeValue'),
         powerMeterBar: document.getElementById('powerMeterBar'),
-        dispersionDot: document.getElementById('dispersionDot'),
-        armSwingBtn: document.getElementById('armSwingBtn'),
-        armBtnMainText: document.getElementById('armBtnMainText'),
-        armBtnSubText: document.getElementById('armBtnSubText'),
+        landingSummaryText: document.getElementById('landingSummaryText'),
+        shotTrajectoryPath: document.getElementById('shotTrajectoryPath'),
+        ballLandingGroup: document.getElementById('ballLandingGroup'),
+        ballLandingHalo: document.getElementById('ballLandingHalo'),
+        ballLandingDot: document.getElementById('ballLandingDot'),
+        clubGripBar: document.getElementById('clubGripBar'),
+        gripStatusIndicator: document.getElementById('gripStatusIndicator'),
+        gripMainStatus: document.getElementById('gripMainStatus'),
+        gripTouchCountBadge: document.getElementById('gripTouchCountBadge'),
+        leftThumbPad: document.getElementById('leftThumbPad'),
+        rightThumbPad: document.getElementById('rightThumbPad'),
+        gripSubInstruction: document.getElementById('gripSubInstruction'),
         avgPowerStat: document.getElementById('avgPowerStat'),
         bestDistStat: document.getElementById('bestDistStat'),
         swingLogList: document.getElementById('swingLogList'),
@@ -324,7 +420,40 @@
       };
 
       // ==========================================
-      // 3. WEB AUDIO API SYNTHESIZER (IMPACT & UI)
+      // 3. MULTI-PLATFORM HAPTICS & VIBRATION ENGINE
+      // ==========================================
+      function triggerHapticPulse(pattern = [65, 25, 35], isStrongImpact = true) {
+        let hardwareVibrated = false;
+
+        // 1. Android Chrome / Supported Browsers Vibration API
+        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+          try {
+            hardwareVibrated = navigator.vibrate(pattern);
+          } catch (err) {
+            console.warn('navigator.vibrate error:', err);
+          }
+        }
+
+        // 2. iOS 17.4+ Safari Hidden Switch Taptic Engine Fallback
+        // Clicking the label of an <input type="checkbox" switch> fires a native iOS Taptic pulse
+        if (el.iosHapticLabel) {
+          try {
+            el.iosHapticLabel.click();
+            if (isStrongImpact) {
+              setTimeout(() => {
+                try { el.iosHapticLabel.click(); } catch (e) {}
+              }, 55);
+            }
+          } catch (err) {
+            // Ignore on browsers that don't support switch haptics
+          }
+        }
+
+        return hardwareVibrated;
+      }
+
+      // ==========================================
+      // 4. WEB AUDIO API SYNTHESIZER (IMPACT & UI)
       // ==========================================
       let audioCtx = null;
 
@@ -345,8 +474,7 @@
       }
 
       /**
-       * Synthesizes a realistic golf club strike sound ("crack/thump" for woods/irons, soft "tock" for putter)
-       * scaled dynamically by the swing power percentage.
+       * Synthesizes a crisp golf clubface ball-strike sound scaled by swing power.
        */
       function playImpactSound(powerPct, clubKey) {
         initAudioContext();
@@ -354,61 +482,56 @@
 
         try {
           const now = audioCtx.currentTime;
-          const intensity = Math.min(Math.max(powerPct / 100, 0.2), 1.15);
+          const intensity = Math.min(Math.max(powerPct / 100, 0.25), 1.15);
 
-          // 1. Low-end compression thump (clubface meeting ball)
+          // 1. Low-end compression thump (clubface compressing golf ball)
           const osc = audioCtx.createOscillator();
           const oscGain = audioCtx.createGain();
           osc.type = clubKey === 'driver' ? 'triangle' : 'sine';
 
-          const startFreq = clubKey === 'putter' ? 220 : (clubKey === 'driver' ? 190 : 160);
-          osc.frequency.setValueAtTime(startFreq + intensity * 60, now);
-          osc.frequency.exponentialRampToValueAtTime(42, now + 0.14);
+          const startFreq = clubKey === 'driver' ? 195 : 165;
+          osc.frequency.setValueAtTime(startFreq + intensity * 65, now);
+          osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
 
           oscGain.gain.setValueAtTime(0.01, now);
-          oscGain.gain.linearRampToValueAtTime(0.65 * intensity, now + 0.008);
-          oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+          oscGain.gain.linearRampToValueAtTime(0.7 * intensity, now + 0.008);
+          oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
 
           osc.connect(oscGain);
           oscGain.connect(audioCtx.destination);
           osc.start(now);
-          osc.stop(now + 0.17);
+          osc.stop(now + 0.18);
 
-          // 2. High-frequency crisp metallic/titanium "crack" burst
-          if (clubKey !== 'putter') {
-            const bufferSize = Math.floor(audioCtx.sampleRate * 0.09);
-            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-            const output = noiseBuffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-              output[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.25));
-            }
-
-            const whiteNoise = audioCtx.createBufferSource();
-            whiteNoise.buffer = noiseBuffer;
-
-            const filter = audioCtx.createBiquadFilter();
-            filter.type = 'bandpass';
-            filter.frequency.setValueAtTime(clubKey === 'driver' ? 2400 : 1850, now);
-            filter.Q.setValueAtTime(1.8, now);
-
-            const noiseGain = audioCtx.createGain();
-            noiseGain.gain.setValueAtTime(0.55 * intensity, now);
-            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.085);
-
-            whiteNoise.connect(filter);
-            filter.connect(noiseGain);
-            noiseGain.connect(audioCtx.destination);
-            whiteNoise.start(now);
+          // 2. High-frequency titanium/forged-iron "crack" burst
+          const bufferSize = Math.floor(audioCtx.sampleRate * 0.095);
+          const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          const output = noiseBuffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            output[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.24));
           }
+
+          const whiteNoise = audioCtx.createBufferSource();
+          whiteNoise.buffer = noiseBuffer;
+
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(clubKey === 'driver' ? 2450 : 1850, now);
+          filter.Q.setValueAtTime(1.8, now);
+
+          const noiseGain = audioCtx.createGain();
+          noiseGain.gain.setValueAtTime(0.6 * intensity, now);
+          noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+          whiteNoise.connect(filter);
+          filter.connect(noiseGain);
+          noiseGain.connect(audioCtx.destination);
+          whiteNoise.start(now);
         } catch (err) {
           console.warn('Audio playback error:', err);
         }
       }
 
-      /**
-       * Subtle UI beep for countdown ticks & armed confirmation
-       */
-      function playCueTone(freq = 520, duration = 0.06, volume = 0.12) {
+      function playCueTone(freq = 520, duration = 0.055, volume = 0.1) {
         initAudioContext();
         if (!audioCtx) return;
         try {
@@ -427,7 +550,7 @@
       }
 
       // ==========================================
-      // 4. UI NOTIFICATIONS & CLUB SELECTION
+      // 5. UI NOTIFICATIONS & CLUB SELECTION
       // ==========================================
       function showBanner(message, type = 'info') {
         el.statusBanner.textContent = message;
@@ -470,56 +593,51 @@
       }
 
       // ==========================================
-      // 5. DEVICE MOTION & ORIENTATION PERMISSIONS
+      // 6. DEVICE MOTION & ORIENTATION PERMISSIONS
       // ==========================================
       async function requestMotionPermissions() {
         initAudioContext();
 
         try {
           if (typeof DeviceMotionEvent === 'undefined') {
-            showBanner('DeviceMotion API not found on this device. Use "Simulate Swing" to test!', 'warning');
+            showBanner('DeviceMotion API unavailable here. Use "Sim Swing" to test!', 'warning');
             return;
           }
 
-          // iOS 13+ Safari requires explicit permission request inside a user gesture
           if (typeof DeviceMotionEvent.requestPermission === 'function') {
             const motionState = await DeviceMotionEvent.requestPermission();
             if (motionState !== 'granted') {
-              showBanner('Motion permission denied. Enable Motion & Orientation Access in Safari Settings.', 'error');
+              showBanner('Motion permission denied. Enable Motion Access in Safari Settings.', 'error');
               return;
             }
           }
 
-          // Optional Gyroscope / DeviceOrientation permission on iOS
           if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
             try {
               await DeviceOrientationEvent.requestPermission();
-            } catch (e) {
-              // Non-fatal if orientation is skipped; rotationRate from DeviceMotion is primary
-            }
+            } catch (e) {}
           }
 
           attachMotionListeners();
           state.sensorsEnabled = true;
 
-          // Update status badge
-          el.sensorBadge.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-semibold';
-          el.sensorDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-ping';
+          el.sensorBadge.className = 'flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[11px] font-semibold';
+          el.sensorDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping';
           el.sensorStatusText.textContent = 'Sensors Live';
 
           el.enableSensorsBtn.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
             <span>Sensors Active</span>
           `;
           el.enableSensorsBtn.classList.replace('bg-emerald-500', 'bg-emerald-600');
 
-          showBanner('Accelerometer & Gyroscope active! Tap "Ready / Address Ball" to swing.', 'success');
-          playCueTone(660, 0.08, 0.15);
+          showBanner('Sensors active! Hold your thumbs on the Club Grip Bar below & swing.', 'success');
+          playCueTone(660, 0.08, 0.14);
         } catch (err) {
           console.error('Sensor permission error:', err);
-          showBanner('Could not access sensors (ensure HTTPS is used). Try "Simulate Swing".', 'error');
+          showBanner('Could not access sensors (ensure HTTPS). Try "Sim Swing".', 'error');
         }
       }
 
@@ -529,90 +647,129 @@
       }
 
       // ==========================================
-      // 6. ARMING & 3-SECOND COUNTDOWN LOGIC
+      // 7. TWO-THUMB CLUB GRIP BAR MECHANIC
       // ==========================================
-      function clearArmTimers() {
-        if (state.countdownTimer) {
-          clearInterval(state.countdownTimer);
-          state.countdownTimer = null;
+      function updateThumbPadsVisual(activeCount, isLeftActive, isRightActive) {
+        if (isLeftActive) {
+          el.leftThumbPad.className = 'h-16 rounded-2xl bg-emerald-500/25 border-2 border-gold-400 flex flex-col items-center justify-center gap-1 scale-[0.98] shadow-inner transition-all duration-100';
+        } else {
+          el.leftThumbPad.className = 'h-16 rounded-2xl bg-augusta-950/85 border border-emerald-500/25 flex flex-col items-center justify-center gap-1 transition-all duration-150';
         }
-        if (state.armedTimeout) {
-          clearTimeout(state.armedTimeout);
-          state.armedTimeout = null;
+
+        if (isRightActive) {
+          el.rightThumbPad.className = 'h-16 rounded-2xl bg-emerald-500/25 border-2 border-gold-400 flex flex-col items-center justify-center gap-1 scale-[0.98] shadow-inner transition-all duration-100';
+        } else {
+          el.rightThumbPad.className = 'h-16 rounded-2xl bg-augusta-950/85 border border-emerald-500/25 flex flex-col items-center justify-center gap-1 transition-all duration-150';
         }
+
+        el.gripTouchCountBadge.textContent = `${activeCount} ${activeCount === 1 ? 'THUMB' : 'THUMBS'}`;
       }
 
-      function resetArmButton() {
-        clearArmTimers();
-        state.armState = 'IDLE';
-        state.isSwinging = false;
-        state.peakG = 0;
-        state.accelSamples = [];
-
-        el.armSwingBtn.className = 'w-full py-5 px-6 rounded-3xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 active:scale-[0.98] text-augusta-950 font-black text-lg tracking-wide uppercase shadow-xl shadow-emerald-500/25 border-2 border-emerald-300/40 transition-all flex flex-col items-center justify-center cursor-pointer';
-        el.armBtnMainText.textContent = 'Ready / Address Ball';
-        el.armBtnSubText.textContent = 'Tap to arm • 3-sec stance window';
-      }
-
-      function startArmSequence() {
+      function engageClubGrip(contactCount, isLeft, isRight) {
         initAudioContext();
+        updateThumbPadsVisual(contactCount, isLeft, isRight);
 
-        // If already armed or counting down, tapping cancels back to IDLE
-        if (state.armState !== 'IDLE') {
-          resetArmButton();
-          return;
+        if (!state.gripLocked) {
+          state.gripLocked = true;
+          state.shotCompletedOnHold = false;
+          state.isSwinging = false;
+          state.peakG = 0;
+          state.accelSamples = [];
+
+          // Subtle tactile tick on grip lock
+          triggerHapticPulse(15, false);
+          playCueTone(620, 0.045, 0.09);
+
+          el.clubGripBar.classList.add('golf-grip-locked', 'border-gold-400');
+          el.clubGripBar.classList.remove('border-emerald-500/35');
+          el.gripStatusIndicator.className = 'w-2.5 h-2.5 rounded-full bg-gold-400 animate-ping';
+          el.gripMainStatus.textContent = 'GRIP LOCKED — READY TO SWING';
+          el.gripMainStatus.className = 'text-xs sm:text-sm font-black uppercase tracking-wider text-gold-400';
+          el.gripSubInstruction.textContent = 'Keep thumbs down & swing! Releasing early cancels shot.';
         }
-
-        if (!state.sensorsEnabled) {
-          showBanner('Tip: Tap "Enable Motion Sensors" first for real swings, or use "Simulate Swing".', 'warning');
-        }
-
-        state.armState = 'COUNTDOWN';
-        let secondsLeft = 3;
-
-        el.armSwingBtn.className = 'w-full py-5 px-6 rounded-3xl bg-amber-500 text-augusta-950 font-black text-lg tracking-wide uppercase shadow-xl shadow-amber-500/25 border-2 border-amber-200 transition-all flex flex-col items-center justify-center cursor-pointer';
-        el.armBtnMainText.textContent = `Take Your Stance... ${secondsLeft}`;
-        el.armBtnSubText.textContent = 'Hold steady • Tap to cancel';
-        playCueTone(440, 0.06, 0.12);
-
-        state.countdownTimer = setInterval(() => {
-          secondsLeft -= 1;
-          if (secondsLeft > 0) {
-            el.armBtnMainText.textContent = `Take Your Stance... ${secondsLeft}`;
-            playCueTone(440, 0.06, 0.12);
-          } else {
-            clearInterval(state.countdownTimer);
-            state.countdownTimer = null;
-            activateArmedState();
-          }
-        }, 850); // Slightly brisk 3-beat cadence (~2.5s total) so it feels snappy
       }
 
-      function activateArmedState() {
-        state.armState = 'ARMED';
-        state.isSwinging = false;
-        state.peakG = 0;
-        state.accelSamples = [];
+      function releaseClubGrip() {
+        updateThumbPadsVisual(0, false, false);
 
-        el.armSwingBtn.className = 'w-full py-5 px-6 rounded-3xl bg-gradient-to-r from-emerald-400 via-gold-400 to-emerald-400 animate-pulse-fast text-augusta-950 font-black text-xl tracking-wide uppercase shadow-2xl shadow-gold-400/30 border-2 border-white transition-all flex flex-col items-center justify-center cursor-pointer';
-        el.armBtnMainText.textContent = 'SWING NOW!';
-        el.armBtnSubText.textContent = 'Listening for downswing acceleration...';
-        playCueTone(880, 0.12, 0.18);
+        if (state.gripLocked) {
+          const wasCanceledMidHold = !state.shotCompletedOnHold;
+          state.gripLocked = false;
+          state.isSwinging = false;
+          state.peakG = 0;
+          state.accelSamples = [];
 
-        // Auto-disarm after 8 seconds if no swing occurs
-        state.armedTimeout = setTimeout(() => {
-          if (state.armState === 'ARMED') {
-            resetArmButton();
-            showBanner('Swing window timed out. Tap "Ready / Address Ball" when set.', 'info');
+          el.clubGripBar.classList.remove('golf-grip-locked', 'border-gold-400');
+          el.clubGripBar.classList.add('border-emerald-500/35');
+          el.gripStatusIndicator.className = 'w-2.5 h-2.5 rounded-full bg-slate-500';
+
+          if (wasCanceledMidHold) {
+            el.gripMainStatus.textContent = 'GRIP RELEASED — SHOT CANCELED';
+            el.gripMainStatus.className = 'text-xs sm:text-sm font-black uppercase tracking-wider text-amber-300';
+            el.gripSubInstruction.textContent = 'Hold thumbs on the grip bar to arm your next swing';
+            playCueTone(320, 0.05, 0.07);
+
+            setTimeout(() => {
+              if (!state.gripLocked) {
+                el.gripMainStatus.textContent = 'HOLD GRIP BAR TO SWING';
+                el.gripMainStatus.className = 'text-xs sm:text-sm font-black uppercase tracking-wider text-emerald-300';
+                el.gripSubInstruction.textContent = 'Press & hold thumbs on the grip bar, swing phone, release after strike';
+              }
+            }, 1600);
+          } else {
+            // Shot was already locked in—reset grip bar cleanly while keeping scorecard visible
+            el.gripMainStatus.textContent = 'HOLD GRIP BAR TO SWING';
+            el.gripMainStatus.className = 'text-xs sm:text-sm font-black uppercase tracking-wider text-emerald-300';
+            el.gripSubInstruction.textContent = 'Shot recorded! Hold thumbs again for your next swing';
           }
-        }, 8000);
+        }
+      }
+
+      // Multi-touch handler (iOS & Android mobile browsers)
+      function handleGripTouchChange(e) {
+        if (e.cancelable) e.preventDefault();
+        const rect = el.clubGripBar.getBoundingClientRect();
+        const midX = rect.left + rect.width / 2;
+
+        // Check touches currently inside or originated on the grip bar
+        const activeTouches = Array.from(e.targetTouches || []);
+        if (activeTouches.length > 0) {
+          let leftActive = false;
+          let rightActive = false;
+          activeTouches.forEach((t) => {
+            if (t.clientX < midX) leftActive = true;
+            else rightActive = true;
+          });
+          // If only 1 thumb is down, highlight whichever side they pressed (or both if centered)
+          engageClubGrip(Math.min(activeTouches.length, 2), leftActive, rightActive);
+        } else {
+          releaseClubGrip();
+        }
+      }
+
+      // Pointer fallback handler (Desktop mouse / stylus / single-pointer testing)
+      function handleGripPointerDown(e) {
+        if (e.pointerType === 'touch') return; // Handled by native multi-touch listener above
+        state.activePointers.add(e.pointerId);
+        try { el.clubGripBar.setPointerCapture(e.pointerId); } catch (err) {}
+
+        const rect = el.clubGripBar.getBoundingClientRect();
+        const isLeft = e.clientX < (rect.left + rect.width / 2);
+        engageClubGrip(1, isLeft, !isLeft);
+      }
+
+      function handleGripPointerUp(e) {
+        if (e.pointerType === 'touch') return;
+        state.activePointers.delete(e.pointerId);
+        if (state.activePointers.size === 0) {
+          releaseClubGrip();
+        }
       }
 
       // ==========================================
-      // 7. ACCELEROMETER & GYROSCOPE SWING ENGINE
+      // 8. ACCELEROMETER & GYROSCOPE SWING ENGINE
       // ==========================================
       function handleDeviceMotion(event) {
-        // Prefer accelerationIncludingGravity because some mobile browsers report null for linear acceleration
         const accG = event.accelerationIncludingGravity;
         const accLinear = event.acceleration;
         const rot = event.rotationRate;
@@ -620,30 +777,26 @@
         let totalG = 0;
 
         if (accLinear && accLinear.x !== null && (Math.abs(accLinear.x) > 0.2 || Math.abs(accLinear.y) > 0.2 || Math.abs(accLinear.z) > 0.2)) {
-          // Pure linear acceleration in m/s^2 converted to G (9.80665 m/s^2)
           const mag = Math.sqrt(accLinear.x ** 2 + accLinear.y ** 2 + accLinear.z ** 2);
           totalG = mag / 9.80665;
         } else if (accG && accG.x !== null) {
-          // Subtract ~1G resting gravity baseline from total magnitude
           const mag = Math.sqrt(accG.x ** 2 + accG.y ** 2 + accG.z ** 2);
           totalG = Math.max(0, (mag / 9.80665) - 1.0);
         }
 
-        // Update live telemetry readout
         el.liveGReadout.innerHTML = `Live: <strong class="text-emerald-300">${totalG.toFixed(1)}G</strong>`;
 
-        // Track wrist/face rotation rate (deg/s) around the longitudinal axis
         if (rot && rot.gamma !== null) {
           state.latestGyroGamma = rot.gamma;
         }
 
-        // Only process swing physics when ARMED
-        if (state.armState !== 'ARMED') return;
+        // Only detect swing impact while thumbs are actively holding the Club Grip Bar
+        // AND a shot hasn't already been completed on this current grip hold
+        if (!state.gripLocked || state.shotCompletedOnHold) return;
 
         const club = CLUBS[state.selectedClub];
         const triggerThresholdG = club.minG;
 
-        // Detect start of downswing acceleration
         if (!state.isSwinging && totalG >= triggerThresholdG) {
           state.isSwinging = true;
           state.peakG = totalG;
@@ -658,13 +811,10 @@
           state.accelSamples.push(totalG);
 
           if (totalG > state.peakG) {
-            // Still accelerating toward bottom of swing arc
             state.peakG = totalG;
             state.peakTimestamp = performance.now();
             state.gyroGammaAtPeak = state.latestGyroGamma;
           } else {
-            // Deceleration inflection detected!
-            // Confirm peak once G drops below 72% of peakG (follow-through deceleration) or 180ms elapsed since peak
             const dropRatio = totalG / state.peakG;
             const timeSincePeak = performance.now() - state.peakTimestamp;
 
@@ -676,53 +826,80 @@
       }
 
       // ==========================================
-      // 8. SHOT CALCULATION, HAPTICS & UI RENDER
+      // 9. SHOT CALCULATION, HAPTICS & 2D FAIRWAY ARC
       // ==========================================
+      function renderFairwayTrajectory(powerPct, lateralOffsetNorm) {
+        // Start at tee (150, 93); max distance reaches y = 12
+        const startX = 150;
+        const startY = 93;
+        const clampedPower = Math.min(Math.max(powerPct / 110, 0.12), 1.0);
+        const endY = startY - clampedPower * 81;
+
+        // Lateral curve (-1 left hook to +1 right slice)
+        const endX = 150 + lateralOffsetNorm * 88;
+        // Control point curves out smoothly to show draw/fade shape
+        const ctrlX = 150 + lateralOffsetNorm * 28;
+        const ctrlY = startY - clampedPower * 44;
+
+        const pathData = `M ${startX} ${startY} Q ${ctrlX.toFixed(1)} ${ctrlY.toFixed(1)} ${endX.toFixed(1)} ${endY.toFixed(1)}`;
+        el.shotTrajectoryPath.setAttribute('d', pathData);
+
+        el.ballLandingGroup.classList.remove('hidden');
+        el.ballLandingHalo.setAttribute('cx', endX.toFixed(1));
+        el.ballLandingHalo.setAttribute('cy', endY.toFixed(1));
+        el.ballLandingDot.setAttribute('cx', endX.toFixed(1));
+        el.ballLandingDot.setAttribute('cy', endY.toFixed(1));
+      }
+
       function finalizeShot(peakG, gyroGamma, samples) {
         const club = CLUBS[state.selectedClub];
-        resetArmButton();
 
-        // Map peakG to 0–110% swing power
+        // Lock shot state so lifting thumbs afterward preserves results without canceling
+        state.isSwinging = false;
+        state.shotCompletedOnHold = true;
+
+        if (state.gripLocked) {
+          el.clubGripBar.classList.remove('golf-grip-locked');
+          el.gripStatusIndicator.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400';
+          el.gripMainStatus.textContent = 'BALL STRUCK — RELEASE GRIP';
+          el.gripMainStatus.className = 'text-xs sm:text-sm font-black uppercase tracking-wider text-emerald-400';
+          el.gripSubInstruction.textContent = 'Shot locked in! Lift thumbs whenever ready.';
+        }
+
+        // Map peakG to 12–110% swing power
         const normalized = (peakG - (club.minG * 0.65)) / (club.maxG - (club.minG * 0.65));
         const rawPowerPct = Math.round(Math.min(Math.max(normalized * 100, 12), 110));
 
-        // Evaluate "PURE TEMPO" (smooth progressive build-up with >= 4 samples and controlled top-end)
-        const rampDurationSamples = samples.length;
-        const isPureTempo = rampDurationSamples >= 4 && rawPowerPct >= 78 && rawPowerPct <= 104;
-
-        // Calculate carry distance (Pure Tempo adds a +4% smash-factor bonus)
+        // Pure Tempo evaluation
+        const isPureTempo = samples.length >= 4 && rawPowerPct >= 78 && rawPowerPct <= 104;
         const tempoBonus = isPureTempo ? 1.04 : 1.0;
         const carryDistance = Math.round(club.maxDist * (rawPowerPct / 100) * tempoBonus);
 
-        // Determine Shot Shape from gyroscope roll rate (deg/s)
+        // Shot Shape & Lateral Fairway Dispersion (-1.0 to +1.0)
         let shotShape = 'Dead Straight';
-        let dispersionPercent = 50; // 50% = center line
+        let lateralNorm = 0;
 
         if (gyroGamma < -140) {
           shotShape = 'Pull Hook';
-          dispersionPercent = 18;
+          lateralNorm = -0.82;
         } else if (gyroGamma < -45) {
           shotShape = 'Slight Draw';
-          dispersionPercent = 34;
+          lateralNorm = -0.34;
         } else if (gyroGamma > 140) {
           shotShape = 'Power Slice';
-          dispersionPercent = 82;
+          lateralNorm = 0.82;
         } else if (gyroGamma > 45) {
           shotShape = 'Slight Fade';
-          dispersionPercent = 66;
+          lateralNorm = 0.34;
         }
 
-        // Trigger Impact Feedback: Sound, Android Vibration, Visual Flash
+        // Trigger Crisp Ball-Impact Vibration & Audio Strike!
+        triggerHapticPulse([65, 25, 35], true);
         playImpactSound(rawPowerPct, state.selectedClub);
 
-        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-          try {
-            navigator.vibrate(rawPowerPct > 90 ? [45, 25, 30] : 40);
-          } catch (e) {}
-        }
-
+        // Screen Impact Flash
         el.impactFlash.classList.remove('animate-impact-flash');
-        void el.impactFlash.offsetWidth; // trigger reflow
+        void el.impactFlash.offsetWidth;
         el.impactFlash.classList.add('animate-impact-flash');
 
         // Update Main Telemetry Display
@@ -731,20 +908,19 @@
         el.distanceValue.textContent = carryDistance;
         el.distanceUnit.textContent = club.unit;
         el.shotShapeValue.textContent = `Shape: ${shotShape}`;
+        el.landingSummaryText.textContent = `${carryDistance} ${club.unit} • ${shotShape}`;
 
-        // Pure Tempo Badge
         if (isPureTempo) {
           el.pureTempoBadge.classList.remove('hidden');
         } else {
           el.pureTempoBadge.classList.add('hidden');
         }
 
-        // Power Meter Bar (110% maps to 100% bar width)
         const barWidth = Math.min((rawPowerPct / 110) * 100, 100);
         el.powerMeterBar.style.width = `${barWidth}%`;
 
-        // Dispersion Dot
-        el.dispersionDot.style.left = `${dispersionPercent}%`;
+        // Update 2D Fairway Trajectory Visual
+        renderFairwayTrajectory(rawPowerPct, lateralNorm);
 
         // Record to Session Log
         recordSwing({
@@ -759,22 +935,38 @@
       }
 
       // ==========================================
-      // 9. DESKTOP / QUICK SIMULATOR
+      // 10. TEST IMPACT VIBRATION & DESKTOP SIMULATOR
       // ==========================================
+      function testImpactFeedback() {
+        initAudioContext();
+        const vibrated = triggerHapticPulse([65, 25, 35], true);
+        playImpactSound(92, state.selectedClub);
+
+        el.impactFlash.classList.remove('animate-impact-flash');
+        void el.impactFlash.offsetWidth;
+        el.impactFlash.classList.add('animate-impact-flash');
+
+        if (vibrated) {
+          el.hapticStatusText.textContent = 'Vibration Active';
+          showBanner('Impact vibration & club strike audio triggered!', 'success');
+        } else {
+          showBanner('Strike audio & Taptic pulse triggered (note: desktop browsers lack vibration motors).', 'info');
+        }
+      }
+
       function simulateSwing() {
         initAudioContext();
         const club = CLUBS[state.selectedClub];
-        // Generate a realistic randomized swing between 68% and 106% power
         const randomFactor = 0.68 + Math.random() * 0.38;
         const simPeakG = club.minG + (club.maxG - club.minG) * randomFactor;
-        const simGyro = (Math.random() - 0.5) * 220; // -110 to +110 deg/s
+        const simGyro = (Math.random() - 0.5) * 220;
         const fakeSamples = [simPeakG * 0.4, simPeakG * 0.65, simPeakG * 0.88, simPeakG, simPeakG * 0.6];
 
         finalizeShot(simPeakG, simGyro, fakeSamples);
       }
 
       // ==========================================
-      // 10. SESSION LOG & STATS
+      // 11. SESSION LOG & STATS
       // ==========================================
       function recordSwing(entry) {
         state.swings.unshift(entry);
@@ -786,21 +978,17 @@
           el.avgPowerStat.textContent = '--%';
           el.bestDistStat.textContent = '--';
           el.swingLogList.innerHTML = `
-            <div class="text-center py-4 text-xs text-slate-500 italic">
-              No swings recorded yet. Address the ball and swing!
+            <div class="text-center py-3 text-xs text-slate-500 italic">
+              No swings recorded yet. Grip the bar &amp; take a swing!
             </div>
           `;
           return;
         }
 
-        // Compute Average Power & Best Yardage
         const avgPower = Math.round(
           state.swings.reduce((sum, s) => sum + s.power, 0) / state.swings.length
         );
-        const yardSwings = state.swings.filter((s) => s.unit === 'yds');
-        const bestSwing = yardSwings.length > 0
-          ? yardSwings.reduce((best, s) => (s.distance > best.distance ? s : best), yardSwings[0])
-          : state.swings[0];
+        const bestSwing = state.swings.reduce((best, s) => (s.distance > best.distance ? s : best), state.swings[0]);
 
         el.avgPowerStat.textContent = `${avgPower}%`;
         el.bestDistStat.textContent = `${bestSwing.distance} ${bestSwing.unit}`;
@@ -808,16 +996,16 @@
         el.swingLogList.innerHTML = state.swings
           .map(
             (s) => `
-            <div class="flex items-center justify-between bg-augusta-950/75 border border-emerald-500/10 rounded-xl px-3 py-2 text-xs">
+            <div class="flex items-center justify-between bg-augusta-950/75 border border-emerald-500/10 rounded-xl px-3 py-1.5 text-xs">
               <div class="flex items-center gap-2">
                 <span class="font-mono text-[10px] text-slate-500">#${s.id}</span>
                 <span class="font-bold text-slate-200">${s.clubName}</span>
                 ${s.pure ? '<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-gold-400/20 text-gold-400 font-bold">PURE</span>' : ''}
               </div>
-              <div class="flex items-center gap-3 font-mono">
-                <span class="text-slate-400">${s.shape}</span>
+              <div class="flex items-center gap-2.5 font-mono">
+                <span class="text-slate-400 text-[11px]">${s.shape}</span>
                 <span class="text-emerald-400 font-bold">${s.power}%</span>
-                <span class="text-white font-extrabold w-16 text-right">${s.distance} ${s.unit}</span>
+                <span class="text-white font-extrabold w-14 text-right">${s.distance} ${s.unit}</span>
               </div>
             </div>
           `
@@ -826,11 +1014,22 @@
       }
 
       // ==========================================
-      // 11. EVENT LISTENERS
+      // 12. EVENT LISTENERS
       // ==========================================
       el.enableSensorsBtn.addEventListener('click', requestMotionPermissions);
+      el.testVibrationBtn.addEventListener('click', testImpactFeedback);
       el.simulateSwingBtn.addEventListener('click', simulateSwing);
-      el.armSwingBtn.addEventListener('click', startArmSequence);
+
+      // Multi-touch listeners for the Two-Thumb Club Grip Bar
+      el.clubGripBar.addEventListener('touchstart', handleGripTouchChange, { passive: false });
+      el.clubGripBar.addEventListener('touchmove', handleGripTouchChange, { passive: false });
+      el.clubGripBar.addEventListener('touchend', handleGripTouchChange, { passive: false });
+      el.clubGripBar.addEventListener('touchcancel', handleGripTouchChange, { passive: false });
+
+      // Pointer listeners for desktop mouse hold testing
+      el.clubGripBar.addEventListener('pointerdown', handleGripPointerDown);
+      el.clubGripBar.addEventListener('pointerup', handleGripPointerUp);
+      el.clubGripBar.addEventListener('pointercancel', handleGripPointerUp);
 
       el.clubPills.forEach((pill) => {
         pill.addEventListener('click', () => selectClub(pill.dataset.club));
